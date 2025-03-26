@@ -1,23 +1,34 @@
 provider "aws" {
-   region = "us-east-1"
+  region = "us-east-1"
+}
+
+
+resource "aws_vpc" "myapp-vpc" {
+  cidr_block = var.vpc_cidr_block
+  tags = {
+    Name: "${var.env_prefix}-vpc"
+  }
+}
+
+module "myapp_subnet" {
+  source = "./modules/subnets"
+  default_route_table_id= aws_vpc.myapp-vpc.default_route_table_id
+  subnet_cidr_block = var.subnet_cidr_block
+  avail_zone= var.avail_zone
+  env_prefix= var.env_prefix
+  vpc_id= aws_vpc.myapp-vpc.id
   
 }
 
-variable "subnet_cidr_block" {
-  description = "subnet cidr block"
-}
+module "myapp-server" {
+  source = "./modules/webservers"
+  instance_type = var.instance_type
+  myPublicKey = var.myPublicKey
+  avail_zone = var.avail_zone
+  env_prefix = var.env_prefix
+  myip =var.myip
+  vpc_id = aws_vpc.myapp-vpc.id
+  image_name =var.image_name
+  subnet_id =module.myapp_subnet.subnet.id
 
-resource "aws_vpc" "development-vpc" {
-   cidr_block = "10.0.0.0/16"   
 }
-
-resource "aws_subnet" "dev-subnet-1" {
-  vpc_id = aws_vpc.development-vpc.id
-  cidr_block = var.subnet_cidr_block
-  availability_zone = "us-east-1a"
-}
-data "aws_vpc" "existing_vpc" {
-  default = true
-}
-
- 
